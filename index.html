@@ -57,26 +57,22 @@
     let token = null;
     let conversationId = null;
 
-    // ⚙️ Appelle ton backend Render ici (🟡 À personnaliser)
-    const BACKEND_URL = "https://copilot-backend-m7w9.onrender.com/api/getToken"; // ⬅️ Remplace ici
-
     async function getDirectLineToken() {
-      const res = await fetch(BACKEND_URL);
-      if (!res.ok) throw new Error("Erreur récupération token depuis backend");
-
+      const res = await fetch("https://copilot-backend-m7w9.onrender.com/api/getToken");
+      if (!res.ok) {
+        throw new Error("Erreur récupération token depuis backend");
+      }
       const data = await res.json();
       token = data.token;
       conversationId = data.conversationId;
-      console.log("✅ Token reçu :", token);
+      console.log("✅ Token et conversationId reçus", token, conversationId);
     }
 
     async function sendMessageToBot(messageText) {
       if (!token || !conversationId) {
         await getDirectLineToken();
       }
-
       const url = `https://directline.botframework.com/v3/directline/conversations/${conversationId}/activities`;
-
       const res = await fetch(url, {
         method: "POST",
         headers: {
@@ -89,22 +85,22 @@
           text: messageText
         })
       });
-
-      if (!res.ok) throw new Error("Erreur envoi message au bot");
+      if (!res.ok) {
+        throw new Error("Erreur envoi message au bot");
+      }
     }
 
     async function getBotMessages() {
       const url = `https://directline.botframework.com/v3/directline/conversations/${conversationId}/activities`;
-
       const res = await fetch(url, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`
         }
       });
-
-      if (!res.ok) throw new Error("Erreur récupération messages bot");
-
+      if (!res.ok) {
+        throw new Error("Erreur récupération messages bot");
+      }
       const data = await res.json();
       const messagesBot = data.activities.filter(a => a.from.id !== "agent" && a.type === "message");
       return messagesBot.map(m => m.text);
@@ -113,18 +109,14 @@
     async function updateSuggestions(messageClient) {
       const suggestionsList = document.getElementById("suggestionsList");
       suggestionsList.innerHTML = "<div>Chargement des suggestions...</div>";
-
       try {
         await sendMessageToBot(messageClient);
-        await new Promise(resolve => setTimeout(resolve, 1500)); // attendre réponse
-
+        await new Promise(resolve => setTimeout(resolve, 1500)); // attente pour réponse
         const suggestions = await getBotMessages();
-
         if (suggestions.length === 0) {
           suggestionsList.innerHTML = "<div>Aucune suggestion reçue.</div>";
           return;
         }
-
         suggestionsList.innerHTML = "";
         suggestions.forEach(text => {
           const div = document.createElement("div");
@@ -138,7 +130,7 @@
       }
     }
 
-    // 🔌 Initialisation Agent SDK
+    // Initialisation Agent SDK
     let api;
     if (typeof getAgentAPI === "function") {
       api = getAgentAPI();
