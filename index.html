@@ -54,71 +54,87 @@
   <script src="https://sfrrec00-sfrvalid.sfrtestglobalcc.com/OneAgentWeb/js/agentsdk/oneagentSDK.js"></script>
 
   <script>
-    let token = null;
+    let conversationToken = null;
     let conversationId = null;
 
-    async function getDirectLineToken() {
-      const res = await fetch("https://copilot-backend-m7w9.onrender.com/api/getToken");
-      if (!res.ok) {
-        throw new Error("Erreur récupération token depuis backend");
-      }
+    // ⚙️ Démarre une conversation (backend appelle Direct Line /conversations)
+    async function startConversation() {
+      const res = await fetch("https://TON-BACKEND-RENDER.onrender.com/api/startConversation");
+      if (!res.ok) throw new Error("Erreur démarrage conversation");
+
       const data = await res.json();
-      token = data.token;
       conversationId = data.conversationId;
-      console.log("✅ Token et conversationId reçus", token, conversationId);
+      conversationToken = data.conversationToken;
+      console.log("Conversation démarrée:", conversationId, conversationToken);
     }
 
+    // Envoie un message à la conversation
     async function sendMessageToBot(messageText) {
-      if (!token || !conversationId) {
-        await getDirectLineToken();
+      if (!conversationId || !conversationToken) {
+        await startConversation();
       }
+
       const url = `https://directline.botframework.com/v3/directline/conversations/${conversationId}/activities`;
+
       const res = await fetch(url, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json"
+          Authorization: `Bearer ${conversationToken}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           type: "message",
           from: { id: "agent" },
-          text: messageText
-        })
+          text: messageText,
+        }),
       });
+
       if (!res.ok) {
         throw new Error("Erreur envoi message au bot");
       }
     }
 
+    // Récupère les messages de la conversation
     async function getBotMessages() {
       const url = `https://directline.botframework.com/v3/directline/conversations/${conversationId}/activities`;
+
       const res = await fetch(url, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+        headers: { Authorization: `Bearer ${conversationToken}` },
       });
+
       if (!res.ok) {
         throw new Error("Erreur récupération messages bot");
       }
+
       const data = await res.json();
-      const messagesBot = data.activities.filter(a => a.from.id !== "agent" && a.type === "message");
-      return messagesBot.map(m => m.text);
+
+      // Filtre les messages envoyés par le bot (pas par agent)
+      const messagesBot = data.activities.filter(
+        (a) => a.from.id !== "agent" && a.type === "message"
+      );
+
+      return messagesBot.map((m) => m.text);
     }
 
     async function updateSuggestions(messageClient) {
       const suggestionsList = document.getElementById("suggestionsList");
       suggestionsList.innerHTML = "<div>Chargement des suggestions...</div>";
+
       try {
         await sendMessageToBot(messageClient);
-        await new Promise(resolve => setTimeout(resolve, 1500)); // attente pour réponse
+
+        // Pause pour laisser le bot répondre (adapter si nécessaire)
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+
         const suggestions = await getBotMessages();
+
         if (suggestions.length === 0) {
           suggestionsList.innerHTML = "<div>Aucune suggestion reçue.</div>";
           return;
         }
+
         suggestionsList.innerHTML = "";
-        suggestions.forEach(text => {
+        suggestions.forEach((text) => {
           const div = document.createElement("div");
           div.className = "suggestion-item";
           div.textContent = text;
@@ -130,7 +146,7 @@
       }
     }
 
-    // Initialisation Agent SDK
+    // 🔌 Initialisation SDK agent
     let api;
     if (typeof getAgentAPI === "function") {
       api = getAgentAPI();
@@ -154,8 +170,8 @@
       clientMessageDiv.textContent = "❌ Impossible d'initialiser l'API agent.";
     }
 
-    // Click sur une suggestion
-    document.getElementById("suggestionsList").addEventListener("click", e => {
+    // Clic sur suggestion pour test
+    document.getElementById("suggestionsList").addEventListener("click", (e) => {
       if (e.target.classList.contains("suggestion-item")) {
         alert("Suggestion choisie : " + e.target.textContent);
       }
