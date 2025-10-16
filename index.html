@@ -59,7 +59,7 @@
 
     // ⚙️ Démarre une conversation (backend appelle Direct Line /conversations)
     async function startConversation() {
-      const res = await fetch("https://TON-BACKEND-RENDER.onrender.com/api/startConversation");
+      const res = await fetch("https://copilot-backend-m7w9.onrender.com/api/startConversation");
       if (!res.ok) throw new Error("Erreur démarrage conversation");
 
       const data = await res.json();
