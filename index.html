@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Assistant Agent - Suggestions</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 12px;
+    background: #f9f9f9;
+  }
+  h2 {
+    color: #004080;
+  }
+  #clientMessage {
+    background: #e6f0ff;
+    border-radius: 6px;
+    padding: 10px;
+    margin-bottom: 20px;
+    font-size: 16px;
+    color: #004080;
+  }
+  #suggestionsList {
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background: white;
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 8px;
+  }
+  .suggestion-item {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    color: #004080;
+  }
+  .suggestion-item:hover {
+    background: #d0e1ff;
+  }
+</style>
+</head>
+<body>
+
+<h2>Message client reçu :</h2>
+<div id="clientMessage">Aucun message reçu pour le moment.</div>
+
+<h2>Suggestions de réponses</h2>
+<div id="suggestionsList">
+  <!-- Suggestions dynamiques ici -->
+</div>
+
+<script>
+  // URL de ton backend sur Render (à adapter)
+  const backendUrl = 'https://copilot-backend-m7w9.onrender.com/api/getToken';
+
+  // Exemple de fonction pour récupérer le token (tu adapteras selon backend)
+  async function getToken() {
+    try {
+      const response = await fetch(backendUrl);
+      if (!response.ok) throw new Error('Erreur récupération token');
+      const data = await response.json();
+      console.log('Token reçu:', data);
+      // Ici tu peux faire une requête à Copilot Studio avec ce token et gérer la réponse
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  // Exemple basique : affichage suggestions statiques
+  const suggestionsList = document.getElementById('suggestionsList');
+  const suggestions = [
+    "Bonjour, comment puis-je vous aider ?",
+    "Pouvez-vous préciser votre demande ?",
+    "Je vérifie cela pour vous, merci de patienter."
+  ];
+
+  suggestions.forEach(text => {
+    const div = document.createElement('div');
+    div.className = 'suggestion-item';
+    div.textContent = text;
+    suggestionsList.appendChild(div);
+  });
+
+  // Appelle la fonction getToken au chargement (exemple)
+  getToken();
+</script>
+
+</body>
+</html>
