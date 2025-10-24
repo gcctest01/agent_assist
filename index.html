@@ -74,7 +74,8 @@
         await startConversation();
       }
 
-      const url = `https://directline.botframework.com/v3/directline/conversations/${conversationId}/activities`;
+      const url = `https://europe.directline.botframework.com/v3/directline/conversations/${conversationId}/activities`;
+      
 
       const res = await fetch(url, {
         method: "POST",
