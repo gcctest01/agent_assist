@@ -97,7 +97,7 @@
 
     // Récupère les messages de la conversation
     async function getBotMessages() {
-      const url = `https://directline.botframework.com/v3/directline/conversations/${conversationId}/activities`;
+      const url = `https://europe.directline.botframework.com/v3/directline/conversations/${conversationId}/activities`;
 
       const res = await fetch(url, {
         headers: { Authorization: `Bearer ${conversationToken}` },
