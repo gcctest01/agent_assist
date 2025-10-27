@@ -1,41 +1,52 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Assistant Watson Orchestrate</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 12px;
-      background: #f9f9f9;
-    }
-    #root {
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      max-width: 600px;
-      margin: 20px auto;
-      height: 500px; /* Taille du chat */
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon Bot Watson</title>
+    <style>
+        /* Style pour que le chat occupe un espace visible */
+        #root {
+            width: 400px;
+            height: 600px;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            background-color: white;
+            z-index: 1000;
+        }
+    </style>
 </head>
 <body>
-  <h2>Assistant Watson Orchestrate intégré</h2>
-  <div id="root">Chargement du chat...</div>
 
-  <!-- Configuration et chargement du widget Watson Orchestrate -->
-  <script>
-    // ⚙️ Configuration
-    window.wxOConfiguration = {
-      orchestrationID: "20251027-1052-3045-40d2-fad754838d75_20251027-1052-5828-7030-9384ea78f531",
-      hostURL: "https://dl.watson-orchestrate.ibm.com",
-      rootElementID: "root",
-      chatOptions: {
-        agentId: "b59963bd-57ab-476e-8004-58973fc13835"
-      }
-    };
+    <!-- Conteneur pour le chat Watson -->
+    <div id="root"></div>
 
-    // ⏳ Chargement dynamique du script
-    setTimeout(function () {
-      const script = document.createElement('script');
-      script.src =
+    <script>
+        // Configuration Watson Orchestrate
+        window.wxOConfiguration = {
+            orchestrationID: "20251027-1052-3045-40d2-fad754838d75_20251027-1052-5828-7030-9384ea78f531",
+            hostURL: "https://dl.watson-orchestrate.ibm.com",
+            rootElementID: "root",
+            chatOptions: {
+                agentId: "b59963bd-57ab-476e-8004-58973fc13835"
+            }
+        };
+
+        // Charger le script Watson après que le DOM est prêt
+        document.addEventListener("DOMContentLoaded", function () {
+            const script = document.createElement('script');
+            script.src = `${window.wxOConfiguration.hostURL}/wxochat/wxoLoader.js?embed=true`;
+            script.addEventListener('load', function () {
+                wxoLoader.init(); // Initialisation du bot
+            });
+            document.head.appendChild(script);
+        });
+    </script>
+
+</body>
+</html>
