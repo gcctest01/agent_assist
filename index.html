@@ -1,94 +1,77 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <title>Agent Chat</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-        #chatLog {
-            border: 1px solid #ccc;
-            padding: 10px;
-            height: 300px;
-            overflow-y: auto;
-            margin-bottom: 10px;
-        }
-        input[type="text"] {
-            width: 70%;
-            padding: 5px;
-        }
-        button {
-            padding: 5px 10px;
-        }
-        p {
-            margin: 5px 0;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>Chat Watson via OneAgentSDK</title>
+  <style>
+      body { font-family: Arial, sans-serif; margin: 20px; }
+      #root { width: 400px; height: 600px; border: 1px solid #ccc; }
+  </style>
 </head>
 <body>
+  <h2>Chat avec Watson Orchestrate</h2>
+  <div id="root"></div>
 
-    <h2>Chat avec l'agent</h2>
-    <div id="chatLog"></div>
-    <input type="text" id="userMessage" placeholder="Tapez un message...">
-    <button id="sendBtn">Envoyer</button>
+  <!-- OneAgentSDK -->
+  <script src="https://sfrrec00-sfrvalid.sfrtestglobalcc.com/OneAgentWeb/js/agentsdk/oneagentSDK.js"></script>
 
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
+  <!-- Embed Watson Orchestrate -->
+  <script>
+    window.wxOConfiguration = {
+      orchestrationID: "20251027-1052-3045-40d2-fad754838d75_20251027-1052-5828-7030-9384ea78f531",
+      hostURL: "https://dl.watson-orchestrate.ibm.com",
+      rootElementID: "root",
+      chatOptions: {
+        agentId: "b59963bd-57ab-476e-8004-58973fc13835",
+      }
+    };
 
-            const sendBtn = document.getElementById("sendBtn");
-            const userMessageInput = document.getElementById("userMessage");
-            const chatLog = document.getElementById("chatLog");
+    setTimeout(function () {
+      const script = document.createElement('script');
+      script.src = `${window.wxOConfiguration.hostURL}/wxochat/wxoLoader.js?embed=true`;
+      script.addEventListener('load', function () {
+          wxoLoader.init();
+      });
+      document.head.appendChild(script);
+    }, 0);
 
-            // Envoyer le message quand on clique sur le bouton
-            sendBtn.addEventListener("click", async () => {
-                const message = userMessageInput.value.trim();
-                if (!message) return;
+    document.addEventListener("DOMContentLoaded", () => {
+      if (window.OneAgentSDK) {
+        OneAgentSDK.onCallMessageReceived = async function(message, userId) {
+          console.log("Message intercepté :", message);
 
-                appendMessage("Vous", message);
-                userMessageInput.value = "";
-
-                try {
-                    const suggestions = await sendMessageToBackend(message, "1234"); // Remplacez 1234 par userId réel
-                    appendMessage("Agent", suggestions.response || "Aucune réponse reçue");
-                } catch (err) {
-                    console.error("Erreur backend :", err);
-                    appendMessage("Agent", "Erreur backend : message non envoyé");
-                }
+          try {
+            // Appel direct à Watson Orchestrate
+            const response = await fetch(`${window.wxOConfiguration.hostURL}/api/message`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                orchestrationID: window.wxOConfiguration.orchestrationID,
+                agentId: window.wxOConfiguration.chatOptions.agentId,
+                message,
+                userId
+              })
             });
-
-            // Fonction pour afficher les messages
-            function appendMessage(sender, text) {
-                const p = document.createElement("p");
-                p.innerHTML = `<strong>${sender}:</strong> ${text}`;
-                chatLog.appendChild(p);
-                chatLog.scrollTop = chatLog.scrollHeight;
-            }
-        });
-
-        // Fonction pour envoyer le message au backend
-        async function sendMessageToBackend(message, userId) {
-            const payload = {
-                message: message,
-                userId: userId
-            };
-
-            const response = await fetch("https://watsson-agent.onrender.com/api/message", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) {
-                throw new Error(`Backend returned ${response.status}`);
-            }
 
             const data = await response.json();
-            return data;
-        }
-    </script>
+            console.log("Réponse Watson reçue :", data.response);
+
+            // Injecter la réponse dans le chat Watson Orchestrate
+            if (window.wxoLoader && wxoLoader.bot) {
+              wxoLoader.bot.addMessage({
+                text: data.response || "Pas de réponse",
+                sender: "bot"
+              });
+            }
+
+          } catch (err) {
+            console.error("Erreur lors de l'appel à Watson :", err);
+          }
+        };
+      } else {
+        console.warn("OneAgentSDK n'est pas chargé !");
+      }
+    });
+  </script>
 </body>
 </html>
