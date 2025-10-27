@@ -1,122 +1,94 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Assistant Virtuel SFR</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 12px;
-      background: #f9f9f9;
-    }
-    h2 {
-      color: #004080;
-    }
-    #clientMessage {
-      background: #e6f0ff;
-      border-radius: 6px;
-      padding: 10px;
-      margin-bottom: 20px;
-      font-size: 16px;
-      color: #004080;
-    }
-    #suggestionsList {
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      background: white;
-      max-height: 300px;
-      overflow-y: auto;
-      padding: 8px;
-    }
-    .suggestion-item {
-      padding: 10px;
-      border-bottom: 1px solid #eee;
-      cursor: pointer;
-      color: #004080;
-    }
-    .suggestion-item:hover {
-      background: #d0e1ff;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <title>Agent Chat</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #chatLog {
+            border: 1px solid #ccc;
+            padding: 10px;
+            height: 300px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+        input[type="text"] {
+            width: 70%;
+            padding: 5px;
+        }
+        button {
+            padding: 5px 10px;
+        }
+        p {
+            margin: 5px 0;
+        }
+    </style>
 </head>
 <body>
 
-  <h2>Message client reçu :</h2>
-  <div id="clientMessage">Aucun message reçu pour le moment.</div>
+    <h2>Chat avec l'agent</h2>
+    <div id="chatLog"></div>
+    <input type="text" id="userMessage" placeholder="Tapez un message...">
+    <button id="sendBtn">Envoyer</button>
 
-  <h2>Suggestions de réponses</h2>
-  <div id="suggestionsList">
-    <div>En attente de message client...</div>
-  </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
 
-  <!-- SDK SFR Agent -->
-  <script src="https://sfrrec00-sfrvalid.sfrtestglobalcc.com/OneAgentWeb/js/agentsdk/oneagentSDK.js"></script>
+            const sendBtn = document.getElementById("sendBtn");
+            const userMessageInput = document.getElementById("userMessage");
+            const chatLog = document.getElementById("chatLog");
 
-  <script>
-    const clientMessageDiv = document.getElementById("clientMessage");
-    const suggestionsList = document.getElementById("suggestionsList");
+            // Envoyer le message quand on clique sur le bouton
+            sendBtn.addEventListener("click", async () => {
+                const message = userMessageInput.value.trim();
+                if (!message) return;
 
-    // Fonction pour envoyer le message au backend Watson
-    async function updateSuggestions(messageClient) {
-      suggestionsList.innerHTML = "<div>Chargement des suggestions...</div>";
+                appendMessage("Vous", message);
+                userMessageInput.value = "";
 
-      try {
-        const res = await fetch("https://watsson-agent.onrender.com/api/message", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ input: messageClient })
+                try {
+                    const suggestions = await sendMessageToBackend(message, "1234"); // Remplacez 1234 par userId réel
+                    appendMessage("Agent", suggestions.response || "Aucune réponse reçue");
+                } catch (err) {
+                    console.error("Erreur backend :", err);
+                    appendMessage("Agent", "Erreur backend : message non envoyé");
+                }
+            });
+
+            // Fonction pour afficher les messages
+            function appendMessage(sender, text) {
+                const p = document.createElement("p");
+                p.innerHTML = `<strong>${sender}:</strong> ${text}`;
+                chatLog.appendChild(p);
+                chatLog.scrollTop = chatLog.scrollHeight;
+            }
         });
 
-        if (!res.ok) throw new Error("Erreur backend");
+        // Fonction pour envoyer le message au backend
+        async function sendMessageToBackend(message, userId) {
+            const payload = {
+                message: message,
+                userId: userId
+            };
 
-        const data = await res.json();
+            const response = await fetch("https://watsson-agent.onrender.com/api/message", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+            });
 
-        suggestionsList.innerHTML = "";
-        if (!data.reply) {
-          suggestionsList.innerHTML = "<div>Aucune suggestion reçue.</div>";
-          return;
+            if (!response.ok) {
+                throw new Error(`Backend returned ${response.status}`);
+            }
+
+            const data = await response.json();
+            return data;
         }
-
-        const div = document.createElement("div");
-        div.className = "suggestion-item";
-        div.textContent = data.reply;
-        suggestionsList.appendChild(div);
-
-      } catch (e) {
-        console.error(e);
-        suggestionsList.innerHTML = "<div>Erreur lors de la récupération des suggestions.</div>";
-      }
-    }
-
-    // Initialisation SDK SFR Agent
-    let api;
-    if (typeof getAgentAPI === "function") {
-      api = getAgentAPI();
-    } else if (typeof oneAgentSDK === "function") {
-      api = new oneAgentSDK();
-    }
-
-    if (api) {
-      api.onCallMessageReceived = async function (event) {
-        const call = event.Call || {};
-        const msg = call.IMMessage || "Message inconnu";
-        const displayName = call.IMDisplayName || "Client";
-
-        clientMessageDiv.textContent = `${displayName} : ${msg}`;
-
-        await updateSuggestions(msg);
-      };
-    } else {
-      clientMessageDiv.textContent = "❌ Impossible d'initialiser l'API agent.";
-    }
-
-    // Cliquer sur une suggestion pour la tester
-    suggestionsList.addEventListener("click", (e) => {
-      if (e.target.classList.contains("suggestion-item")) {
-        alert("Suggestion choisie : " + e.target.textContent);
-      }
-    });
-  </script>
+    </script>
 </body>
 </html>
