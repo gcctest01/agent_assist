@@ -62,7 +62,7 @@
       suggestionsList.innerHTML = "<div>Chargement des suggestions...</div>";
 
       try {
-        const res = await fetch("https://watsson-agent.onrender.com/api/sendMessage", {
+        const res = await fetch("https://watsson-agent.onrender.com/api/message", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ input: messageClient })
