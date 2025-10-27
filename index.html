@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Assistant Watson intégré avec SDK SFR Agent</title>
+  <title>Assistant Watson intégré</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -50,84 +50,73 @@
     <div>En attente de message client...</div>
   </div>
 
-  <!-- Inclusion SDK SFR Agent -->
+  <!-- SDK SFR Agent -->
   <script src="https://sfrrec00-sfrvalid.sfrtestglobalcc.com/OneAgentWeb/js/agentsdk/oneagentSDK.js"></script>
 
   <script>
-    let conversationId = null;
+    const clientMessageDiv = document.getElementById("clientMessage");
+    const suggestionsList = document.getElementById("suggestionsList");
 
-    // Fonction pour envoyer un message au backend Watson
-    async function sendMessageToBackend(messageText) {
+    // Envoie le message client au backend et récupère les suggestions Watson
+    async function updateSuggestions(messageClient) {
+      suggestionsList.innerHTML = "<div>Chargement des suggestions...</div>";
+
       try {
-        const response = await fetch('/api/sendMessage', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: messageText })
+        const res = await fetch("http://localhost:3000/api/sendMessage", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: messageClient })
         });
 
-        if (!response.ok) throw new Error('Erreur envoi message au backend');
+        if (!res.ok) throw new Error("Erreur backend");
 
-        const data = await response.json();
-        return data.replies || [];
-      } catch (error) {
-        console.error('Erreur dans sendMessageToBackend:', error);
-        return [];
+        const data = await res.json();
+
+        if (!data.responses || data.responses.length === 0) {
+          suggestionsList.innerHTML = "<div>Aucune suggestion reçue.</div>";
+          return;
+        }
+
+        suggestionsList.innerHTML = "";
+        data.responses.forEach(text => {
+          const div = document.createElement("div");
+          div.className = "suggestion-item";
+          div.textContent = text;
+          suggestionsList.appendChild(div);
+        });
+      } catch (e) {
+        console.error(e);
+        suggestionsList.innerHTML = "<div>Erreur lors de la récupération des suggestions.</div>";
       }
     }
 
-    // Met à jour la liste des suggestions avec les réponses du bot
-    async function updateSuggestions(clientMessage) {
-      const suggestionsList = document.getElementById('suggestionsList');
-      suggestionsList.innerHTML = '<div>Chargement des suggestions...</div>';
-
-      const replies = await sendMessageToBackend(clientMessage);
-
-      if (replies.length === 0) {
-        suggestionsList.innerHTML = '<div>Aucune suggestion reçue.</div>';
-        return;
-      }
-
-      suggestionsList.innerHTML = '';
-      replies.forEach(text => {
-        const div = document.createElement('div');
-        div.className = 'suggestion-item';
-        div.textContent = text;
-        suggestionsList.appendChild(div);
-      });
+    // Intégration SDK SFR Agent
+    let api;
+    if (typeof getAgentAPI === "function") {
+      api = getAgentAPI();
+    } else if (typeof oneAgentSDK === "function") {
+      api = new oneAgentSDK();
     }
 
-    // Initialisation SDK SFR Agent et interception des messages clients
-    window.onload = () => {
-      const clientMessageDiv = document.getElementById('clientMessage');
-
-      let api;
-      if (typeof getAgentAPI === 'function') {
-        api = getAgentAPI();
-      } else if (typeof oneAgentSDK === 'function') {
-        api = new oneAgentSDK();
-      }
-
-      if (!api) {
-        clientMessageDiv.textContent = '❌ Impossible d\'initialiser l\'API agent.';
-        return;
-      }
-
+    if (api) {
       api.onCallMessageReceived = async function(event) {
         const call = event.Call || {};
-        const msg = call.IMMessage || 'Message inconnu';
-        const displayName = call.IMDisplayName || 'Client';
+        const msg = call.IMMessage || "Message inconnu";
+        const displayName = call.IMDisplayName || "Client";
 
         clientMessageDiv.textContent = `${displayName} : ${msg}`;
         await updateSuggestions(msg);
       };
+    } else {
+      clientMessageDiv.textContent = "❌ Impossible d'initialiser l'API agent.";
+    }
 
-      // Clique sur suggestion pour tester
-      document.getElementById('suggestionsList').addEventListener('click', e => {
-        if (e.target.classList.contains('suggestion-item')) {
-          alert('Suggestion choisie : ' + e.target.textContent);
-        }
-      });
-    };
+    // Clic sur suggestion pour tester la sélection
+    suggestionsList.addEventListener("click", e => {
+      if (e.target.classList.contains("suggestion-item")) {
+        alert("Suggestion choisie : " + e.target.textContent);
+      }
+    });
   </script>
 </body>
 </html>
