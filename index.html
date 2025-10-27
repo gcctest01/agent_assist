@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Assistant Watson intégré</title>
+  <title>Assistant Virtuel SFR</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -57,40 +57,39 @@
     const clientMessageDiv = document.getElementById("clientMessage");
     const suggestionsList = document.getElementById("suggestionsList");
 
-    // Envoie le message client au backend et récupère les suggestions Watson
+    // Fonction pour envoyer le message au backend Watson
     async function updateSuggestions(messageClient) {
       suggestionsList.innerHTML = "<div>Chargement des suggestions...</div>";
 
       try {
-        const res = await fetch("http://localhost:3000/api/sendMessage", {
+        const res = await fetch("https://watsson-agent.onrender.com/api/message", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: messageClient })
+          body: JSON.stringify({ input: messageClient })
         });
 
         if (!res.ok) throw new Error("Erreur backend");
 
         const data = await res.json();
 
-        if (!data.responses || data.responses.length === 0) {
+        suggestionsList.innerHTML = "";
+        if (!data.reply) {
           suggestionsList.innerHTML = "<div>Aucune suggestion reçue.</div>";
           return;
         }
 
-        suggestionsList.innerHTML = "";
-        data.responses.forEach(text => {
-          const div = document.createElement("div");
-          div.className = "suggestion-item";
-          div.textContent = text;
-          suggestionsList.appendChild(div);
-        });
+        const div = document.createElement("div");
+        div.className = "suggestion-item";
+        div.textContent = data.reply;
+        suggestionsList.appendChild(div);
+
       } catch (e) {
         console.error(e);
         suggestionsList.innerHTML = "<div>Erreur lors de la récupération des suggestions.</div>";
       }
     }
 
-    // Intégration SDK SFR Agent
+    // Initialisation SDK SFR Agent
     let api;
     if (typeof getAgentAPI === "function") {
       api = getAgentAPI();
@@ -99,20 +98,21 @@
     }
 
     if (api) {
-      api.onCallMessageReceived = async function(event) {
+      api.onCallMessageReceived = async function (event) {
         const call = event.Call || {};
         const msg = call.IMMessage || "Message inconnu";
         const displayName = call.IMDisplayName || "Client";
 
         clientMessageDiv.textContent = `${displayName} : ${msg}`;
+
         await updateSuggestions(msg);
       };
     } else {
       clientMessageDiv.textContent = "❌ Impossible d'initialiser l'API agent.";
     }
 
-    // Clic sur suggestion pour tester la sélection
-    suggestionsList.addEventListener("click", e => {
+    // Cliquer sur une suggestion pour la tester
+    suggestionsList.addEventListener("click", (e) => {
       if (e.target.classList.contains("suggestion-item")) {
         alert("Suggestion choisie : " + e.target.textContent);
       }
