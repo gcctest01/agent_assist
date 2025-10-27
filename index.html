@@ -2,26 +2,30 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Watson + OneAgentSDK</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Assistant Watson Orchestrate</title>
   <style>
-    /* Optionnel : taille du chat Watson */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 12px;
+      background: #f9f9f9;
+    }
     #root {
-      width: 400px;
-      height: 600px;
       border: 1px solid #ccc;
+      border-radius: 6px;
+      max-width: 600px;
       margin: 20px auto;
+      height: 500px; /* Taille du chat */
     }
   </style>
 </head>
 <body>
-  <h2>Chat Watson + OneAgentSDK</h2>
-  <div id="root"></div>
+  <h2>Assistant Watson Orchestrate intégré</h2>
+  <div id="root">Chargement du chat...</div>
 
-  <!-- 1️⃣ Charger OneAgentSDK -->
-  <script src="https://sfrrec00-sfrvalid.sfrtestglobalcc.com/OneAgentWeb/js/agentsdk/oneagentSDK.js"></script>
-
+  <!-- Configuration et chargement du widget Watson Orchestrate -->
   <script>
-    // 2️⃣ Configurer Watson Orchestrate
+    // ⚙️ Configuration
     window.wxOConfiguration = {
       orchestrationID: "20251027-1052-3045-40d2-fad754838d75_20251027-1052-5828-7030-9384ea78f531",
       hostURL: "https://dl.watson-orchestrate.ibm.com",
@@ -31,32 +35,7 @@
       }
     };
 
-    // Charger le loader Watson après le DOM
-    setTimeout(() => {
+    // ⏳ Chargement dynamique du script
+    setTimeout(function () {
       const script = document.createElement('script');
-      script.src = `${window.wxOConfiguration.hostURL}/wxochat/wxoLoader.js?embed=true`;
-      script.addEventListener('load', () => {
-        wxoLoader.init();
-        console.log("Watson chat ready!");
-      });
-      document.head.appendChild(script);
-    }, 0);
-
-    // 3️⃣ Intercepter les messages OneAgentSDK
-    OneAgentSDK.init();
-
-    OneAgentSDK.addEventListener('onCallMessageReceived', async function(event) {
-      const userMessage = event.detail.message;
-      console.log("Message intercepté du OneAgent:", userMessage);
-
-      // 4️⃣ Envoyer le message à Watson via l'embed
-      if (window.wxoLoader && window.wxoLoader.bot) {
-        wxoLoader.bot.addMessage(userMessage);
-        console.log("Message envoyé à Watson:", userMessage);
-      } else {
-        console.warn("Watson chat non prêt, message en attente...");
-      }
-    });
-  </script>
-</body>
-</html>
+      script.src =
