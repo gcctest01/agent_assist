@@ -2,74 +2,59 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Chat Watson via OneAgentSDK</title>
+  <title>Watson + OneAgentSDK</title>
   <style>
-      body { font-family: Arial, sans-serif; margin: 20px; }
-      #root { width: 400px; height: 600px; border: 1px solid #ccc; }
+    /* Optionnel : taille du chat Watson */
+    #root {
+      width: 400px;
+      height: 600px;
+      border: 1px solid #ccc;
+      margin: 20px auto;
+    }
   </style>
 </head>
 <body>
-  <h2>Chat avec Watson Orchestrate</h2>
+  <h2>Chat Watson + OneAgentSDK</h2>
   <div id="root"></div>
 
-  <!-- OneAgentSDK -->
+  <!-- 1️⃣ Charger OneAgentSDK -->
   <script src="https://sfrrec00-sfrvalid.sfrtestglobalcc.com/OneAgentWeb/js/agentsdk/oneagentSDK.js"></script>
 
-  <!-- Embed Watson Orchestrate -->
   <script>
+    // 2️⃣ Configurer Watson Orchestrate
     window.wxOConfiguration = {
       orchestrationID: "20251027-1052-3045-40d2-fad754838d75_20251027-1052-5828-7030-9384ea78f531",
       hostURL: "https://dl.watson-orchestrate.ibm.com",
       rootElementID: "root",
       chatOptions: {
-        agentId: "b59963bd-57ab-476e-8004-58973fc13835",
+        agentId: "b59963bd-57ab-476e-8004-58973fc13835"
       }
     };
 
-    setTimeout(function () {
+    // Charger le loader Watson après le DOM
+    setTimeout(() => {
       const script = document.createElement('script');
       script.src = `${window.wxOConfiguration.hostURL}/wxochat/wxoLoader.js?embed=true`;
-      script.addEventListener('load', function () {
-          wxoLoader.init();
+      script.addEventListener('load', () => {
+        wxoLoader.init();
+        console.log("Watson chat ready!");
       });
       document.head.appendChild(script);
     }, 0);
 
-    document.addEventListener("DOMContentLoaded", () => {
-      if (window.OneAgentSDK) {
-        OneAgentSDK.onCallMessageReceived = async function(message, userId) {
-          console.log("Message intercepté :", message);
+    // 3️⃣ Intercepter les messages OneAgentSDK
+    OneAgentSDK.init();
 
-          try {
-            // Appel direct à Watson Orchestrate
-            const response = await fetch(`${window.wxOConfiguration.hostURL}/api/message`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                orchestrationID: window.wxOConfiguration.orchestrationID,
-                agentId: window.wxOConfiguration.chatOptions.agentId,
-                message,
-                userId
-              })
-            });
+    OneAgentSDK.addEventListener('onCallMessageReceived', async function(event) {
+      const userMessage = event.detail.message;
+      console.log("Message intercepté du OneAgent:", userMessage);
 
-            const data = await response.json();
-            console.log("Réponse Watson reçue :", data.response);
-
-            // Injecter la réponse dans le chat Watson Orchestrate
-            if (window.wxoLoader && wxoLoader.bot) {
-              wxoLoader.bot.addMessage({
-                text: data.response || "Pas de réponse",
-                sender: "bot"
-              });
-            }
-
-          } catch (err) {
-            console.error("Erreur lors de l'appel à Watson :", err);
-          }
-        };
+      // 4️⃣ Envoyer le message à Watson via l'embed
+      if (window.wxoLoader && window.wxoLoader.bot) {
+        wxoLoader.bot.addMessage(userMessage);
+        console.log("Message envoyé à Watson:", userMessage);
       } else {
-        console.warn("OneAgentSDK n'est pas chargé !");
+        console.warn("Watson chat non prêt, message en attente...");
       }
     });
   </script>
