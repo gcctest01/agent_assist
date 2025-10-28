@@ -1,20 +1,16 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Agent Assist – Watsonx Orchestrate</title>
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Assistant Agent Assist - Watsonx Orchestrate</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f9fafc;
-      color: #00264d;
-      margin: 20px;
+      margin: 12px;
+      background: #f9f9f9;
     }
-    h2 {
-      color: #003366;
-    }
+    h2 { color: #004080; }
     #clientMessage {
       background: #e6f0ff;
       border-radius: 6px;
@@ -26,7 +22,7 @@
     #suggestionsList {
       border: 1px solid #ccc;
       border-radius: 6px;
-      background: #fff;
+      background: white;
       max-height: 300px;
       overflow-y: auto;
       padding: 8px;
@@ -35,77 +31,59 @@
       padding: 10px;
       border-bottom: 1px solid #eee;
       cursor: pointer;
-      transition: background 0.2s;
+      color: #004080;
     }
-    .suggestion-item:hover {
-      background: #d6e4ff;
-    }
-    .error {
-      color: red;
-      font-size: 14px;
-    }
+    .suggestion-item:hover { background: #d0e1ff; }
   </style>
 </head>
 <body>
 
-  <h2>💬 Message client reçu :</h2>
+  <h2>Message client reçu :</h2>
   <div id="clientMessage">Aucun message reçu pour le moment.</div>
 
-  <h2>💡 Suggestions de réponses</h2>
-  <div id="suggestionsList"><div>En attente d’un message client...</div></div>
+  <h2>Suggestions de réponses :</h2>
+  <div id="suggestionsList">
+    <div>En attente de message client...</div>
+  </div>
 
-  <!-- SDK SFR Agent -->
+  <!-- SDK agent -->
   <script src="https://sfrrec00-sfrvalid.sfrtestglobalcc.com/OneAgentWeb/js/agentsdk/oneagentSDK.js"></script>
 
   <script>
-    /**********************************************
-     * 🔧 CONFIGURATION GLOBALE
-     **********************************************/
-    const BACKEND_URL = "https://watsonx-assist.onrender.com"; 
-    // 🔸 Change ceci par l’URL réelle de ton backend déployé
-    // ex: "http://localhost:3000" pour test local
-
     const clientMessageDiv = document.getElementById("clientMessage");
     const suggestionsList = document.getElementById("suggestionsList");
 
-    /**********************************************
-     * 📤 Fonction pour envoyer le message à Orchestrate
-     **********************************************/
+    // Fonction pour envoyer un message au backend et récupérer la réponse Watsonx
     async function getWatsonSuggestions(messageClient) {
-      suggestionsList.innerHTML = "<div>⏳ Récupération des suggestions...</div>";
+      suggestionsList.innerHTML = "<div>Chargement des suggestions...</div>";
 
       try {
-        const response = await fetch(`${BACKEND_URL}/api/sendToOrchestrate`, {
+        const res = await fetch("https://watsonx-assist.onrender.com/api/sendToOrchestrate", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json"
+          },
           body: JSON.stringify({ message: messageClient })
         });
 
-        if (!response.ok) throw new Error("Erreur API Orchestrate");
+        if (!res.ok) throw new Error("Erreur API Orchestrate");
 
-        const data = await response.json();
-        const reply = data.reply || "Aucune réponse disponible.";
+        const data = await res.json();
 
-        // 🧩 Si Watson renvoie plusieurs propositions (par ex. séparées par des \n)
-        const suggestions = reply.split("\n").filter(t => t.trim() !== "");
-
+        // Affiche la réponse dans la liste des suggestions
         suggestionsList.innerHTML = "";
-        suggestions.forEach(text => {
-          const div = document.createElement("div");
-          div.className = "suggestion-item";
-          div.textContent = text;
-          suggestionsList.appendChild(div);
-        });
+        const div = document.createElement("div");
+        div.className = "suggestion-item";
+        div.textContent = data.reply;
+        suggestionsList.appendChild(div);
 
-      } catch (err) {
-        console.error(err);
-        suggestionsList.innerHTML = `<div class="error">❌ Erreur de communication avec Watsonx Orchestrate</div>`;
+      } catch (error) {
+        console.error("Erreur récupération Watsonx:", error);
+        suggestionsList.innerHTML = "<div>Erreur lors de la récupération des suggestions.</div>";
       }
     }
 
-    /**********************************************
-     * 🤖 Intégration SDK SFR Agent (écoute messages client)
-     **********************************************/
+    // Initialisation SDK Agent
     let api;
     if (typeof getAgentAPI === "function") {
       api = getAgentAPI();
@@ -114,24 +92,25 @@
     }
 
     if (api) {
-      api.onCallMessageReceived = async function (event) {
+      // Lorsque le message client est reçu via SDK
+      api.onCallMessageReceived = async function(event) {
         const call = event.Call || {};
-        const msg = call.IMMessage || "Message vide";
+        const msg = call.IMMessage || "Message inconnu";
         const displayName = call.IMDisplayName || "Client";
 
         clientMessageDiv.textContent = `${displayName} : ${msg}`;
+
+        // Appel au backend pour récupérer la suggestion Watsonx
         await getWatsonSuggestions(msg);
       };
     } else {
-      clientMessageDiv.textContent = "❌ Impossible d’initialiser le SDK agent.";
+      clientMessageDiv.textContent = "❌ Impossible d'initialiser l'API agent.";
     }
 
-    /**********************************************
-     * 🖱️ Gestion clic sur suggestion
-     **********************************************/
+    // Permet de cliquer sur une suggestion pour la tester
     suggestionsList.addEventListener("click", (e) => {
       if (e.target.classList.contains("suggestion-item")) {
-        alert("✅ Suggestion sélectionnée : " + e.target.textContent);
+        alert("Suggestion choisie : " + e.target.textContent);
       }
     });
   </script>
